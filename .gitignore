@@ -1,32 +1,24 @@
-# Prerequisites
-*.d
+# History files
+.Rhistory
+.Rapp.history
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
+# Session Data files
+.RData
 
-# Precompiled Headers
-*.gch
-*.pch
+# User-specific files
+.Ruserdata
 
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
+# RStudio files
+.Rproj.user/
 
-# Fortran module files
-*.mod
-*.smod
+# produced vignettes
+vignettes/*.html
+vignettes/*.pdf
 
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
+# knitr and R markdown default cache directories
+*_cache/
+/cache/
 
-# Executables
-*.exe
-*.out
-*.app
+# Temporary files created by R markdown
+*.utf8.md
+*.knit.md
