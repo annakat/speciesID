@@ -11,7 +11,7 @@ dati<- read.csv("./PLSDA_dat.csv")
 ### Quick PLSDA
 classi <- as.factor(dati$species) ### define classes
 
-wvl <- paste0("X",seq(400,2400, by=20)) ### define wvl range for spectral matrix, check your column names
+wvl <- paste0("X",seq(400,2400, by=10)) ### define wvl range for spectral matrix, check your column names
 spec <- dati[,which(colnames(dati)%in%as.character(wvl))] ### make spec matrix
 
 set.seed(1840) ### create random number for obs in each species/class 
@@ -67,11 +67,13 @@ probis <- cbind(testclass, probis)
 #########################
 classi <- as.factor(dati$species) ### define classes
 
-wvl <- paste0("X",seq(400,2400, by=20)) ### define wvl range for spectral matrix, check your column names
+wvl <- paste0("X",seq(400,2400, by=10)) ### define wvl range for spectral matrix, check your column names
 spec <- dati[,which(colnames(dati)%in%as.character(wvl))] ### make spec matrix
 
-### PLSDA iterative models for finding number of components, this takes a while
-nsims <- 5 ### increase to desired no of iterations, e.g. 50, 100, 500
+### PLSDA iterative models for finding number of components
+### this takes a while, decrease iterations (nsims) for test run
+
+nsims <- 10 ### number of iterations, can be increased, e.g. 50, 100, 500 for larger datasets
 rndid <- list() ### specify no samples per species for training, alternative to % partitioning
 set.seed(1840)
 for (i in 1:nsims){ 
@@ -135,7 +137,7 @@ text(x=1:20, y=rep(1,20),letters)
 #### Final model ###
 compi <- 3 ### select number of components based on Kappa plot / Tukey test
 finmods <- list()
-nsims=5
+nsims=10
 
 for (nsim in 1:nsims){
   print(nsim)
@@ -246,35 +248,6 @@ mtext("Prediction",2, line=0, cex=1.2)
 mtext("Reference",at = 2, line = 1.5, cex=1.2)
 # dev.off()
 
-#### END #######
-
-## Note: Accumean and accuracies in mods are based on probablities
-## In the confuplot we are showing accuracies based on the 0/1 decisions
-## both are relevant for reporting
-## we make our class decision based on 0/1 result
-## but when accumean is low model generalizability is not good (e.g. 60% is not very trustworthy)
-
- 
-### Modelsstats ##
-### Model accuracy ### change number to ncomps
-accu <- numeric(length=length(mods)) 
-for (i in 1:length(mods)){
-  accu[i] <- mods[[i]]$results$Accuracy[compi]
-}
-
-(accmean <- mean(accu))
-(accsd <- sd(accu))
-
-### Model accuracy
-kappas <- numeric(length=length(mods))
-for (i in 1:length(mods)){
-  kappas[i] <- mods[[i]]$results$Kappa[compi]
-}
-
-(kappmean <- mean(kappas))
-(kappsd <- sd(kappas))
-
-
 #### Importance of bands
 lls <- list()
 for(i in 1:length(finmods)){
@@ -290,10 +263,92 @@ mm <- cbind(mm,ss)
 
 # pdf("./PLSDA_loadings.pdf",width = 6,height = 4)
 plot(1:ncol(testing), mm$mm, type="n", bty="l", ylab="abs (loadings)", 
-     xaxt="n", xlab="Wavelength (nm)")
-polygon(x=c(1:ncol(testing),ncol(testing):1), y=c(mm$mm-(mm$ss)*5, rev(mm$mm+(mm$ss)*5)),col = "grey", border = "grey")
+     xaxt="n", xlab="Wavelength (nm)", 
+     ylim=c(min(mm$mm)-mm[which(mm$mm==min(mm$mm)),]$ss, 
+            max(mm$mm)+mm[which(mm$mm==max(mm$mm)),]$ss))
+polygon(x=c(1:ncol(testing),ncol(testing):1), y=c(mm$mm-(mm$ss), rev(mm$mm+(mm$ss))),col = "grey", border = "grey")
 lines(1:ncol(testing), mm$mm, type="l")
-axis(1, at=seq(1,ncol(testing),20), labels=seq(400,1900,200))
-abline(v=(1680-400)/10) 
-# text((seq(1, 14, by=1)+0.3), y=1.1,labels = mm$labi,srt=90,xpd = T, pos=2)
+axis(1, at=seq(1,ncol(testing),4), labels=seq(400,2400,400))
 # dev.off()
+
+### Modelsstatistics ##
+
+## Note: Accumean and accuracies in mods are based on probablities
+## In the confuplot we are showing accuracies based on the 0/1 decisions
+## both are relevant for reporting
+## we make our class decision based on 0/1 result
+## but when accumean is low model generalizability is not good (e.g. a mean accuracy of 60% is not very trustworthy)
+
+### Accuracy and Kappa statistic
+accu <- numeric(length=length(confus))
+for (i in 1:length(confus)){
+  accu[i] <- confus[[i]]$overall[1]
+}
+
+(accmean <- mean(accu)) #mean accuracy
+(accsd <- sd(accu))  #standard devation
+
+kappas <- numeric(length=length(confus))
+for (i in 1:length(confus)){
+  kappas[i] <- confus[[i]]$overall[2]
+}
+
+(kappmean <- mean(kappas))
+(kappsd <- sd(kappas))
+
+
+### Sensitivity, specificity, precision
+specifi <- list()
+sensi <- list()
+preci <- list()
+mean_specifi <- list()
+mean_sensi <- list()
+# kappas <- list() ## kapp and accuracy by hand
+# accu <- list()
+
+for (i in 1:nsims){
+  (confu <- confus[[i]]$table)
+  (n <- sum(confu)) # number of instances
+  (nc <- nrow(confu)) # number of classes
+  (diag <-  diag(as.matrix(confu))) # number of correctly classified instances per class
+  (rowsums <- apply(confu, 1, sum)) # number of instances per class
+  (colsums <-  apply(confu, 2, sum)) # number of predictions per class
+  (p <- rowsums / n) # distribution of instances over the actual classes
+  (q <- colsums / n) # distribution of instances over the predicted classes
+  preci[[i]] <- diag / colsums ### TP/TP+FP
+  # accuracy <- sum(diag) / n ### accurcay
+  # accu[[i]] <- accuracy
+  # expAccuracy <- sum(p*q) ### kappa
+  # kappas[[i]] <- (accuracy - expAccuracy) / (1 - expAccuracy)
+  
+  ### sensitivity, true positive rate: TP/TP+FN, TP/P
+  sensi[[i]] <- diag / rowsums
+  ### specificity, true negative rate: TN/TN+FP TN/N
+  speci <- numeric(length = nrow(confu))
+  for (j in 1:nrow(confu)){
+    speci[j] <- sum(confu[-j,-j])/sum(confu[,-j])
+  }
+  names(speci) <- colnames(confu)
+  specifi[[i]] <- speci
+  ##### Specificity and Sensitivity
+  mean_specifi[[i]] <- sum(speci)/nc
+  mean_sensi[[i]] <- sum(sensi[[i]])/nc
+}
+
+mean(unlist(sensi)) ### mean sensitivity
+sd(unlist(sensi)) ### standard deviation sensitivity
+
+mean(unlist(specifi)) ### same for specificity
+sd(unlist(specifi))
+
+mean(unlist(preci)) ### same for precision
+sd(unlist(preci))
+
+# mean(unlist(accu)) ### same for accuracy
+# sd(unlist(accu))
+
+# mean(unlist(kappas)) ### same for kappa
+# sd(unlist(kappas))
+
+#### END ######
+
