@@ -7,4 +7,4 @@ Partial least squares discriminant analysis (PLSDA) for predicting class members
 2) Example dataset: ``PLSDA_dat.csv`` containing species identity information and leaf-level spectra.
 
 ## Please cite
-Release v1.0  DOI: 10.5281/zenodo.6806656  
+Schweiger, A.K. (2022). annakat/speciesID: PLSDA - Plant identification from spectra (Version v1.0) [Computer software]. Zenodo, https://doi.org/10.5281/ZENODO.6806656 
