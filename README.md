@@ -6,3 +6,5 @@ Partial least squares discriminant analysis (PLSDA) for predicting class members
 
 2) Example dataset: ``PLSDA_dat.csv`` containing species identity information and leaf-level spectra.
 
+## Please cite
+Release v.1 DOI: 10.5281/zenodo.6806656 
